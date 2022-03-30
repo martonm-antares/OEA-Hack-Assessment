@@ -1,17 +1,17 @@
-Gender,Income,avg_attendance,national_average_marks,avg_gpa,school_year,Grade
-Male,Low Income,92.3,81.7,2.9,2021,9
-Male,High Income,79.9,79.8,2.8,2021,9
-Male,Low Income,91.8,80.9,2.8,2021,10
-Male,High Income,80.6,80.1,2.7,2021,10
-Male,Low Income,90.7,80,2.8,2021,11
-Male,High Income,80.4,80.1,2.7,2021,11
-Male,Low Income,85.4,80.3,2.7,2021,12
-Male,High Income,82.1,80.2,2.6,2021,12
-Female,Low Income,92.5,81.9,3,2021,9
-Female,High Income,80.1,80,2.9,2021,9
-Female,Low Income,92,81.1,2.9,2021,10
-Female,High Income,80.8,80.3,2.8,2021,10
-Female,Low Income,90.9,80.2,2.9,2021,11
-Female,High Income,80.6,80.3,2.8,2021,11
-Female,Low Income,85.6,80.5,2.8,2021,12
-Female,High Income,82.3,80.4,2.7,2021,12
+id,Gender,Income,avg_attendance,national_average_marks,avg_gpa,school_year,Grade
+1,Male,Low Income,92.3,81.7,2.9,2021,9
+2,Male,High Income,79.9,79.8,2.8,2021,9
+3,Male,Low Income,91.8,80.9,2.8,2021,10
+4,Male,High Income,80.6,80.1,2.7,2021,10
+5,Male,Low Income,90.7,80,2.8,2021,11
+6,Male,High Income,80.4,80.1,2.7,2021,11
+7,Male,Low Income,85.4,80.3,2.7,2021,12
+8,Male,High Income,82.1,80.2,2.6,2021,12
+9,Female,Low Income,92.5,81.9,3,2021,9
+10,Female,High Income,80.1,80,2.9,2021,9
+11,Female,Low Income,92,81.1,2.9,2021,10
+12,Female,High Income,80.8,80.3,2.8,2021,10
+13,Female,Low Income,90.9,80.2,2.9,2021,11
+14,Female,High Income,80.6,80.3,2.8,2021,11
+15,Female,Low Income,85.6,80.5,2.8,2021,12
+16,Female,High Income,82.3,80.4,2.7,2021,12
