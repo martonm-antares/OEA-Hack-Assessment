@@ -1,4 +1,4 @@
 # OEA-Hack-Assessment Data files
-This repo contains only the data files that were used to load into the OEA Hack Assessment pipeline. 
+This repo contains all of the files for the OEA Hack Assessment. 
 
-For the OEA Hack Assessment files - go to https://github.com/martonm-antares/oeahack
+It also includes the additional datasets in the /datasets folder (national.csv) that was used for the assessment. 
