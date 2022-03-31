@@ -1,0 +1,342 @@
+{
+	"name": "Antares_DataTransform",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "spark3p1sm",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "57404442-df6a-40df-aa79-fab03784a57a"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1735300c-0c18-453f-b3b7-8b49cbac9c06/resourceGroups/rg-oea-mmarek/providers/Microsoft.Synapse/workspaces/syn-oea-mmarek/bigDataPools/spark3p1sm",
+				"name": "spark3p1sm",
+				"type": "Spark",
+				"endpoint": "https://syn-oea-mmarek.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark3p1sm",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 3,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql.window import Window\r\n",
+					"import pyspark.sql.functions as F"
+				],
+				"attachments": null,
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run OEA_py"
+				],
+				"attachments": null,
+				"execution_count": 13
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Load data from Stage 2"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"source_system = 'generated_data'\r\n",
+					"\r\n",
+					"# source table locations. We are only loading 1 year worth of data for this\r\n",
+					"attendance_pseudo_path = f'studentattendance_pseudo/school_year={schoolYears}'\r\n",
+					"attendance_lookup_path = f'studentattendance_lookup/school_year={schoolYears}'\r\n",
+					"marks_pseudo_path = f'studentsectionmark_pseudo/school_year={schoolYears}'\r\n",
+					"marks_lookup_path = f'studentsectionmark_lookup/school_year={schoolYears}'\r\n",
+					"demographics_pseudo_path = 'studentdemographics_pseudo'\r\n",
+					"demographics_lookup_path = 'studentdemographics_lookup'\r\n",
+					"\r\n",
+					"# supporting datasets\r\n",
+					"national_lookup_path = 'support_data/national_pseudo'\r\n",
+					"\r\n",
+					"# transformed table destinations (stage3)\r\n",
+					"dest_student_pseudo = f'{source_system}/dim_student_pseudo'\r\n",
+					"dest_student_loopup = f'{source_system}/dim_student_lookup'\r\n",
+					"dest_class = f'{source_system}/dim_class'\r\n",
+					"dest_student_enrolment = f'{source_system}/fact_student_enrolment'\r\n",
+					"dest_student_attendance = f'{source_system}/fact_student_attendance'\r\n",
+					"dest_student_sectionmark = f'{source_system}/fact_student_sectionmark'\r\n",
+					"dest_student_attendance_stats = f'{source_system}/fact_student_attendance_stats'\r\n",
+					"dest_student_marks_stats = f'{source_system}/fact_student_marks_stats'\r\n",
+					"\r\n",
+					"# supporting datasets\r\n",
+					"dest_national = f'{source_system}/fact_national'\r\n",
+					"\r\n",
+					"source_stage_p = oea.stage2p\r\n",
+					"source_stage_np = oea.stage2np\r\n",
+					"\r\n",
+					"# load the delta tables from the source\r\n",
+					"try:\r\n",
+					"    attendance_pseudo_df = spark.read.load(f\"{source_stage_p}/{source_system}/{attendance_pseudo_path}\", format='delta')\r\n",
+					"\r\n",
+					"    marks_pseudo_df = spark.read.load(f\"{source_stage_p}/{source_system}/{marks_pseudo_path}\", format='delta')\r\n",
+					"\r\n",
+					"    demographics_pseudo_df = spark.read.load(f\"{source_stage_p}/{source_system}/{demographics_pseudo_path}\", format='delta')\r\n",
+					"    demographics_lookup_df = spark.read.load(f\"{source_stage_np}/{source_system}/{demographics_lookup_path}\", format='delta')\r\n",
+					"\r\n",
+					"    national_df = spark.read.load(f\"{source_stage_p}/{national_lookup_path}\", format='delta')\r\n",
+					"\r\n",
+					"except AnalysisException as e:\r\n",
+					"    raise ValueError(\"MM--Failed to load. Check the paths.\\nMore info below:\\n\" + str(e)) \r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 14
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"##  Transform to target model"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# create a temporary marks df that inlcudes an additional class_sk identifer - this will be used to remove a 'class' from this table\r\n",
+					"temp_mark_df = marks_pseudo_df.withColumn(\"class_sk\", \\\r\n",
+					"                                    F.dense_rank().over(Window.orderBy(marks_pseudo_df.school_year, \\\r\n",
+					"                                    marks_pseudo_df.term_id, marks_pseudo_df.section_id)))\r\n",
+					"\r\n",
+					"temp_mark_df = temp_mark_df.withColumnRenamed('student_id_pseudonym', 'xstudent_id_pseudonym')\r\n",
+					"\r\n",
+					"#join the demographics table to the marks table using student id\r\n",
+					"mark_and_demo_df = temp_mark_df.join(demographics_pseudo_df, \\\r\n",
+					"                                temp_mark_df.xstudent_id_pseudonym == demographics_pseudo_df.SIS_ID_pseudonym, \"inner\")\r\n",
+					"\r\n",
+					"# create the student enrolment fact table by taking the studentID, class_sk, school_year, grade, graduation_year and status\r\n",
+					"fact_student_enrolment_df = mark_and_demo_df.select(F.col('xstudent_id_pseudonym').alias('student_id_pseudonym'), \\\r\n",
+					"                                                'class_sk', \\\r\n",
+					"                                                F.col('Grade').alias('grade'), \\\r\n",
+					"                                                F.col('Graduation_Year').alias('graduation_year'), \\\r\n",
+					"                                                F.col('Status').alias('status'))\r\n",
+					"                                                \r\n",
+					"# we can now create the class dimension and remove section_id, school_year and term_id from the marks df\r\n",
+					"dim_class_df = temp_mark_df.select('class_sk', 'school_year', 'term_id', 'section_id').distinct()\r\n",
+					"\r\n",
+					"# we can now remove school_year, term_id and section_id from the temp_mark_df \r\n",
+					"fact_student_mark_df = temp_mark_df.withColumnRenamed('xstudent_id_pseudonym', 'student_id_pseudonym') \\\r\n",
+					"                                .drop('school_year') \\\r\n",
+					"                                .drop('term_id') \\\r\n",
+					"                                .drop('section_id') \\\r\n",
+					"                                .distinct()\r\n",
+					"\r\n",
+					"# create the student attendance fact table \r\n",
+					"temp_attendance_df = attendance_pseudo_df.withColumnRenamed('section_id', 'xsection_id').drop('school_year')\r\n",
+					"\r\n",
+					"# join with the class dim and bring in teh class_sk attribute\r\n",
+					"fact_student_attendance_df = temp_attendance_df.join(dim_class_df, temp_attendance_df.xsection_id == dim_class_df.section_id, \"inner\")\r\n",
+					"\r\n",
+					"# remove the attributes that are not required\r\n",
+					"fact_student_attendance_df = fact_student_attendance_df.drop('section_id') \\\r\n",
+					"                                                        .drop('xsection_id') \\\r\n",
+					"                                                        .drop('school_year') \\\r\n",
+					"                                                        .drop('term_id')\r\n",
+					"\r\n",
+					"# convert the student demographic tables to our student dimensions\r\n",
+					"dim_student_pseudo_df = demographics_pseudo_df.withColumnRenamed('SIS_ID_pseudonym', 'student_id_pseudonym') \\\r\n",
+					"                                                .drop('Grade') \\\r\n",
+					"                                                .drop('Graduation_Year') \\\r\n",
+					"                                                .drop('Status')\r\n",
+					"\r\n",
+					"# add a new column that represents lowincome as a string value\r\n",
+					"dim_student_pseudo_df = dim_student_pseudo_df.withColumn(\"Income\", F.when((dim_student_pseudo_df.LowIncome == 1), F.lit(\"Low Income\")) \\\r\n",
+					"                                                            .otherwise(F.lit(\"High Income\")))\r\n",
+					"\r\n",
+					"dim_student_lookup_df = demographics_lookup_df.withColumnRenamed('SIS_ID_pseudonym', 'student_id_pseudonym')\r\n",
+					"\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 15
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Data aggregation"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# add total attendance per each student aggregate to a fact table (fact_student_attendance_stats)\r\n",
+					"temp_total_df = fact_student_attendance_df.groupBy(attendance_pseudo_df.student_id_pseudonym).count()\r\n",
+					"\r\n",
+					"temp_total_df = temp_total_df.withColumnRenamed('count', 'total_classes')\r\n",
+					"\r\n",
+					"temp_present_df = fact_student_attendance_df.groupBy(attendance_pseudo_df.student_id_pseudonym, attendance_pseudo_df.attendance_status).count() \\\r\n",
+					"                                            .where(F.col(\"attendance_status\") == \"Present\")\r\n",
+					"\r\n",
+					"temp_present_df = temp_present_df.withColumnRenamed('count', 'total_classes_present')\r\n",
+					"\r\n",
+					"temp_total_df = temp_total_df.withColumnRenamed('student_id_pseudonym', 'xstudent_id_pseudonym')\r\n",
+					"\r\n",
+					"joined_temp_df = temp_total_df.join(temp_present_df, temp_total_df.xstudent_id_pseudonym == temp_present_df.student_id_pseudonym, \"inner\")\r\n",
+					"\r\n",
+					"student_attendance_stats_df = joined_temp_df.drop('xstudent_id_pseudonym').drop('attendance_status')\r\n",
+					"\r\n",
+					"# add the percentage attendance for each student\r\n",
+					"student_attendance_stats_df = student_attendance_stats_df.withColumn('total_attendance_percentage', \\\r\n",
+					"                             (student_attendance_stats_df.total_classes_present / student_attendance_stats_df.total_classes))\r\n",
+					"\r\n",
+					"# add the low attendance at risk flag to each student \r\n",
+					"fact_student_attendance_stats_df = student_attendance_stats_df.withColumn('risk_level', F.when((student_attendance_stats_df.total_attendance_percentage < 0.8), F.lit(\"High Risk\")) \\\r\n",
+					"                                                            .otherwise(F.lit(\"Low Risk\")))\r\n",
+					"\r\n",
+					"# add the average marks per student to a new fact table\r\n",
+					"fact_student_marks_stats = fact_student_mark_df.groupBy('student_id_pseudonym').avg('numeric_grade_earned')\r\n",
+					"\r\n",
+					"fact_student_marks_stats = fact_student_marks_stats.withColumnRenamed('avg(numeric_grade_earned)', 'average_grade')\r\n",
+					"\r\n",
+					"# add a risk indicator column\r\n",
+					"fact_student_marks_stats = fact_student_marks_stats.withColumn('risk_level', F.when((fact_student_marks_stats.average_grade < 75), F.lit(\"High Risk\")) \\\r\n",
+					"                                                            .otherwise(F.lit(\"Low Risk\")))\r\n",
+					"\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 22
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# save the new tables to stage 3\r\n",
+					"\r\n",
+					"dim_student_pseudo_df.write.format('delta').save(oea.path(\"stage3p\", dest_student_pseudo), header=True, mode=\"overwrite\")\r\n",
+					"dim_student_lookup_df.write.format('delta').save(oea.path(\"stage3np\", dest_student_loopup), header=True, mode=\"overwrite\")\r\n",
+					"dim_class_df.write.format('delta').save(oea.path(\"stage3np\", dest_class), header=True, mode=\"overwrite\")\r\n",
+					"fact_student_mark_df.write.format('delta').save(oea.path(\"stage3p\", dest_student_sectionmark), header=True, mode=\"overwrite\")\r\n",
+					"fact_student_attendance_df.write.format('delta').save(oea.path(\"stage3p\", dest_student_attendance), header=True, mode=\"overwrite\")\r\n",
+					"fact_student_enrolment_df.write.format('delta').save(oea.path(\"stage3p\", dest_student_enrolment), header=True, mode=\"overwrite\")\r\n",
+					"fact_student_attendance_stats_df.write.format('delta').save(oea.path(\"stage3p\", dest_student_attendance_stats), header=True, mode=\"overwrite\")\r\n",
+					"fact_student_marks_stats.write.format('delta').save(oea.path(\"stage3p\", dest_student_marks_stats), header=True, mode=\"overwrite\")\r\n",
+					"\r\n",
+					"#supporting datasets\r\n",
+					"national_df.write.format('delta').save(oea.path(\"stage3p\", dest_national), header=True, mode=\"overwrite\")\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 17
+			}
+		]
+	}
+}

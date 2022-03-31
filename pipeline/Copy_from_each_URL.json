@@ -1,0 +1,77 @@
+{
+	"name": "Copy_from_each_URL",
+	"properties": {
+		"description": "Retrieves data from multiple HTTP endpoints as specified in the 'endpoints' parameter.\nThe data is landed in the data lake within a folder named with the current datetime (in the timezone specified).\n\nFor a list of timezones, see: https://docs.microsoft.com/en-us/azure/data-factory/control-flow-expression-language-functions#convertfromutc",
+		"activities": [
+			{
+				"name": "get data for each endpoint",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.endpoints",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 3,
+					"activities": [
+						{
+							"name": "Copy_from_URL",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Copy_from_URL",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"URL": {
+										"value": "@item().URL",
+										"type": "Expression"
+									},
+									"sinkFilesystem": {
+										"value": "@pipeline().parameters.sinkFilesystem",
+										"type": "Expression"
+									},
+									"sinkFilename": {
+										"value": "@{item().sinkDirectory}/@{item().sinkFilename}",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"endpoints": {
+				"type": "array",
+				"defaultValue": [
+					{
+						"URL": "https://raw.githubusercontent.com/martonm-antares/OEA-Hack-Assessment/main/datasets/national.csv",
+						"sinkDirectory": "support_data/national",
+						"sinkFilename": "national.csv"
+					}
+				]
+			},
+			"sinkFilesystem": {
+				"type": "string",
+				"defaultValue": "stage1np"
+			},
+			"timezone": {
+				"type": "string",
+				"defaultValue": "Eastern Standard Time"
+			}
+		},
+		"folder": {
+			"name": "OEA_Framework/Extracts"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-03-30T06:13:45Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}
